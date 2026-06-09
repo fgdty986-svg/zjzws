@@ -72,9 +72,8 @@
   a{color:var(--accent)}
   .pill{font-size:11px;padding:2px 8px;border-radius:999px;background:#0e1428;border:1px solid var(--line);color:var(--sub)}
   #map{height:200px; border-radius:12px; margin-top:6px; background:#0e1428; z-index:0}
-  .leaflet-container{background:#0e1428}
-  .leaflet-control-attribution{background:rgba(14,20,40,.7)!important;color:#9aa3c0!important;font-size:10px}
-  .leaflet-control-attribution a{color:var(--accent)!important}
+  .leaflet-container{background:#e8eef5}
+  .leaflet-control-attribution{font-size:10px}
   /* 历史记录 */
   .histcard{grid-column:1/-1}
   table{width:100%; border-collapse:collapse; font-size:13px}
@@ -320,8 +319,8 @@ function showMap(lat, lng, label){
   if(!lat || !lng || typeof L==='undefined') return;
   if(!map){
     map = L.map('map',{zoomControl:true, attributionControl:true}).setView([lat,lng], 9);
-    // Carto 暗色底图：全球 CDN，加载更快，且与深色界面协调
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    // Carto Voyager 浅色底图：全球 CDN，加载快，浅色清爽
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
       subdomains:'abcd', maxZoom:19, attribution:'© OpenStreetMap · © CARTO'
     }).addTo(map);
   } else { map.setView([lat,lng], 9); }
