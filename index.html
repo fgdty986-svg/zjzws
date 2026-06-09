@@ -160,7 +160,10 @@ const EP = {
 async function detectBackend(){
   try{
     const r = await fetch('/api/ping', {cache:'no-store'});
-    if(r.ok){
+    const txt = (await r.text()).trim();
+    // 仅当真后端精确返回 "pong" 才启用本地端点；
+    // Cloudflare Pages 等静态托管会对未知路径返回 200 + 首页 HTML，需排除
+    if(r.ok && txt === 'pong'){
       EP.local = true;
       EP.downURL = b => `/api/download?bytes=${b}`;
       EP.upURL   = () => `/api/upload`;
