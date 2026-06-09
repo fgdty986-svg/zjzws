@@ -117,6 +117,7 @@
       <button id="startBtn" data-i18n="startBtn">▶ 开始测速</button>
       <div class="bar"><i id="prog"></i></div>
       <div class="status" id="status" data-i18n="statusIdle">点击开始，将依次测量延迟、下载与上传</div>
+      <div class="status" id="bwNote" data-i18n="bwNote" style="opacity:.75"></div>
     </div>
 
     <!-- IP 信息 -->
@@ -183,6 +184,7 @@ const I18N = {
     locFail:"归属地查询失败（API 限流或被拦截）", ipFail:"获取失败",
     thTime:"时间", thDl:"下载 Mbps", thUl:"上传 Mbps", thPing:"延迟 ms", thJitter:"抖动 ms",
     avg:n=>`平均 (${n}次)`, mapPopupDefault:"你的大致位置",
+    cooldown:s=>`请稍候 ${s}s`, bwNote:"提示：测速会在几秒内占满带宽，属正常现象，不会损害设备或网络。",
   },
   en: {
     title:"NetCheck · Online Speed Test / IP Lookup",
@@ -205,6 +207,7 @@ const I18N = {
     locFail:"Location lookup failed (API limit or blocked)", ipFail:"Failed",
     thTime:"Time", thDl:"Download Mbps", thUl:"Upload Mbps", thPing:"Latency ms", thJitter:"Jitter ms",
     avg:n=>`Avg (${n})`, mapPopupDefault:"Your approximate location",
+    cooldown:s=>`Wait ${s}s`, bwNote:"Note: a speed test briefly uses your full bandwidth — this is normal and harmless.",
   },
   ja: {
     title:"NetCheck · オンライン速度テスト / IP 情報",
@@ -227,6 +230,7 @@ const I18N = {
     locFail:"所在地の取得に失敗（API 制限またはブロック）", ipFail:"取得失敗",
     thTime:"時刻", thDl:"DL Mbps", thUl:"UL Mbps", thPing:"遅延 ms", thJitter:"ジッター ms",
     avg:n=>`平均 (${n}回)`, mapPopupDefault:"おおよその位置",
+    cooldown:s=>`お待ちを ${s}秒`, bwNote:"ヒント：速度テストは数秒間、帯域を最大限使用します。正常な動作で害はありません。",
   },
 };
 
@@ -420,7 +424,29 @@ async function runTest(){
   $('prog').style.width='100%';
   $('status').textContent=`${t('statusDone')}  ↓${dl.toFixed(1)} ↑${ul.toFixed(1)} Mbps · ${ping}ms · ${t('jitterShort')} ${jitter}ms`;
   saveHistory({dl, ul, ping, jitter});
-  btn.disabled=false;
+  startCooldown(10);   // 冷却 10 秒，防止连续猛刷把带宽打满
+}
+
+/* ============ 测速冷却倒计时 ============ */
+let cooldownTimer=null;
+function startCooldown(sec){
+  const btn=$('startBtn');
+  const cd = (I18N[lang] && I18N[lang].cooldown) ? I18N[lang].cooldown : I18N.zh.cooldown;
+  let remain=sec;
+  btn.disabled=true;
+  btn.textContent=cd(remain);
+  clearInterval(cooldownTimer);
+  cooldownTimer=setInterval(()=>{
+    remain--;
+    if(remain<=0){
+      clearInterval(cooldownTimer); cooldownTimer=null;
+      btn.disabled=false;
+      btn.textContent=t('startBtn');
+    } else {
+      const cd2 = (I18N[lang] && I18N[lang].cooldown) ? I18N[lang].cooldown : I18N.zh.cooldown;
+      btn.textContent=cd2(remain);
+    }
+  },1000);
 }
 
 /* ============ 历史记录（localStorage） ============ */
