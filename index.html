@@ -6,15 +6,15 @@
 
 <!-- ===== SEO ===== -->
 <title>NetCheck 网络检测工具 · 在线测网速 / 查 IP 归属地</title>
-<meta name="description" content="免费在线网络检测：一键测试下载、上传速度、延迟 Ping 与抖动，查询公网 IP 归属地、运营商，并在地图上显示位置。纯浏览器运行，无需安装。">
-<meta name="keywords" content="测网速,网速测试,speedtest,IP查询,IP归属地,延迟测试,ping,网络检测">
+<meta name="description" content="免费在线网络检测：一键测试下载、上传速度、延迟 Ping 与抖动，查询公网 IP 归属地、运营商，并在地图上显示位置。支持中文 / English / 日本語。">
+<meta name="keywords" content="测网速,网速测试,speedtest,IP查询,IP归属地,延迟测试,ping,网络检测,speed test,ip lookup,スピードテスト">
 <meta name="theme-color" content="#0b1020">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="canonical" href="/">
 <!-- Open Graph / 分享卡片 -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="NetCheck 网络检测工具">
-<meta property="og:description" content="一键测网速、查 IP 归属地、地图定位，纯浏览器运行。">
+<meta property="og:description" content="一键测网速、查 IP 归属地、地图定位，纯浏览器运行。中/英/日三语。">
 <meta property="og:image" content="favicon.svg">
 
 <!-- 地图库 Leaflet（免费，无需 Key） -->
@@ -31,7 +31,7 @@
   }
   *{box-sizing:border-box}
   body{
-    margin:0; font-family:"Segoe UI",system-ui,"Microsoft YaHei",sans-serif;
+    margin:0; font-family:"Segoe UI",system-ui,"Microsoft YaHei","Yu Gothic",sans-serif;
     background:radial-gradient(1200px 600px at 70% -10%,#1c2547 0,var(--bg) 60%);
     color:var(--txt); min-height:100vh; padding:24px;
   }
@@ -83,72 +83,175 @@
   .linkbtn{background:none;border:1px solid var(--line);color:var(--sub);padding:4px 10px;font-size:12px;border-radius:8px}
   .empty{color:var(--sub); font-size:13px; padding:10px 0}
   .src{font-size:11px;font-weight:500;color:var(--sub)}
+  /* 语言切换 */
+  .langsw{margin-left:auto; display:flex; gap:4px}
+  .langsw button{background:#0e1428;border:1px solid var(--line);color:var(--sub);
+    padding:5px 9px;font-size:12px;border-radius:8px;font-weight:600}
+  .langsw button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="logo">🌐</div>
-    <div><h1>网络检测工具 <span class="pill">NetCheck</span></h1></div>
+    <div><h1><span data-i18n="appName">网络检测工具</span> <span class="pill">NetCheck</span></h1></div>
+    <div class="langsw">
+      <button data-lang="zh">中</button>
+      <button data-lang="en">EN</button>
+      <button data-lang="ja">日</button>
+    </div>
   </header>
-  <p class="sub">测网速 · 查 IP 归属地 · 地图定位 · 历史记录 — 纯浏览器运行，数据不经过我们的服务器</p>
+  <p class="sub" data-i18n="tagline">测网速 · 查 IP 归属地 · 地图定位 · 历史记录 — 纯浏览器运行，数据不经过我们的服务器</p>
 
   <div class="grid">
     <!-- 测速大卡片 -->
     <div class="card speedcard">
-      <h3>网络速度测试 <span class="src" id="srcTag">检测后端中…</span></h3>
+      <h3><span data-i18n="speedTitle">网络速度测试</span> <span class="src" id="srcTag"></span></h3>
       <div class="gauges">
-        <div class="gauge"><div class="lbl">下载</div><div class="num"><span id="dl">--</span> <small>Mbps</small></div></div>
-        <div class="gauge"><div class="lbl">上传</div><div class="num"><span id="ul">--</span> <small>Mbps</small></div></div>
-        <div class="gauge"><div class="lbl">延迟 Ping</div><div class="num"><span id="ping">--</span> <small>ms</small></div></div>
-        <div class="gauge"><div class="lbl">抖动 Jitter</div><div class="num"><span id="jitter">--</span> <small>ms</small></div></div>
+        <div class="gauge"><div class="lbl" data-i18n="dlLabel">下载</div><div class="num"><span id="dl">--</span> <small>Mbps</small></div></div>
+        <div class="gauge"><div class="lbl" data-i18n="ulLabel">上传</div><div class="num"><span id="ul">--</span> <small>Mbps</small></div></div>
+        <div class="gauge"><div class="lbl" data-i18n="pingLabel">延迟 Ping</div><div class="num"><span id="ping">--</span> <small>ms</small></div></div>
+        <div class="gauge"><div class="lbl" data-i18n="jitterLabel">抖动 Jitter</div><div class="num"><span id="jitter">--</span> <small>ms</small></div></div>
       </div>
-      <button id="startBtn">▶ 开始测速</button>
+      <button id="startBtn" data-i18n="startBtn">▶ 开始测速</button>
       <div class="bar"><i id="prog"></i></div>
-      <div class="status" id="status">点击开始，将依次测量延迟、下载与上传</div>
+      <div class="status" id="status" data-i18n="statusIdle">点击开始，将依次测量延迟、下载与上传</div>
     </div>
 
     <!-- IP 信息 -->
     <div class="card">
-      <h3>公网 IP 信息</h3>
-      <div class="row"><span class="k">IP 地址</span><span class="v" id="ip">加载中…</span></div>
-      <div class="row"><span class="k">归属地</span><span class="v" id="loc">—</span></div>
-      <div class="row"><span class="k">运营商 ISP</span><span class="v" id="isp">—</span></div>
-      <div class="row"><span class="k">经纬度</span><span class="v" id="geo">—</span></div>
-      <div class="row"><span class="k">时区</span><span class="v" id="tz">—</span></div>
+      <h3 data-i18n="ipTitle">公网 IP 信息</h3>
+      <div class="row"><span class="k" data-i18n="ipAddr">IP 地址</span><span class="v" id="ip">—</span></div>
+      <div class="row"><span class="k" data-i18n="locLabel">归属地</span><span class="v" id="loc">—</span></div>
+      <div class="row"><span class="k" data-i18n="ispLabel">运营商 ISP</span><span class="v" id="isp">—</span></div>
+      <div class="row"><span class="k" data-i18n="geoLabel">经纬度</span><span class="v" id="geo">—</span></div>
+      <div class="row"><span class="k" data-i18n="tzLabel">时区</span><span class="v" id="tz">—</span></div>
     </div>
 
     <!-- 本地与设备 -->
     <div class="card">
-      <h3>本地 / 设备信息</h3>
-      <div class="row"><span class="k">局域网 IP</span><span class="v" id="lanip">探测中…</span></div>
-      <div class="row"><span class="k">连接类型</span><span class="v" id="conn">—</span></div>
-      <div class="row"><span class="k">屏幕分辨率</span><span class="v" id="screen">—</span></div>
-      <div class="row"><span class="k">操作系统</span><span class="v" id="os">—</span></div>
-      <div class="row"><span class="k">浏览器语言</span><span class="v" id="lang">—</span></div>
+      <h3 data-i18n="deviceTitle">本地 / 设备信息</h3>
+      <div class="row"><span class="k" data-i18n="lanipLabel">局域网 IP</span><span class="v" id="lanip">—</span></div>
+      <div class="row"><span class="k" data-i18n="connLabel">连接类型</span><span class="v" id="conn">—</span></div>
+      <div class="row"><span class="k" data-i18n="screenLabel">屏幕分辨率</span><span class="v" id="screen">—</span></div>
+      <div class="row"><span class="k" data-i18n="osLabel">操作系统</span><span class="v" id="os">—</span></div>
+      <div class="row"><span class="k" data-i18n="browserLangLabel">浏览器语言</span><span class="v" id="lang">—</span></div>
     </div>
 
     <!-- 地图 -->
     <div class="card histcard">
-      <h3>IP 位置地图</h3>
+      <h3 data-i18n="mapTitle">IP 位置地图</h3>
       <div id="map"></div>
     </div>
 
     <!-- 历史记录 -->
     <div class="card histcard">
-      <h3>测速历史 <button class="linkbtn" id="clearBtn">清空</button></h3>
-      <div id="histBox"><div class="empty">还没有记录，完成一次测速后会自动保存（最多 20 条）。</div></div>
+      <h3><span data-i18n="histTitle">测速历史</span> <button class="linkbtn" id="clearBtn" data-i18n="clearBtn">清空</button></h3>
+      <div id="histBox"></div>
     </div>
   </div>
 
   <footer>
-    下载/上传测速优先使用本地后端，未部署后端时自动改用 Cloudflare 公共端点 · IP 数据来自 ipapi.co<br>
-    地图来自 OpenStreetMap / Leaflet（免费无需 Key）· 所有测量与历史记录均在你的浏览器本地完成。
+    <span data-i18n="footer1"></span><br><span data-i18n="footer2"></span>
   </footer>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
+
+/* ============ 多语言翻译表 ============ */
+const I18N = {
+  zh: {
+    title:"NetCheck 网络检测工具 · 在线测网速 / 查 IP 归属地",
+    appName:"网络检测工具",
+    tagline:"测网速 · 查 IP 归属地 · 地图定位 · 历史记录 — 纯浏览器运行，数据不经过我们的服务器",
+    speedTitle:"网络速度测试",
+    dlLabel:"下载", ulLabel:"上传", pingLabel:"延迟 Ping", jitterLabel:"抖动 Jitter",
+    startBtn:"▶ 开始测速",
+    statusIdle:"点击开始，将依次测量延迟、下载与上传",
+    ipTitle:"公网 IP 信息", ipAddr:"IP 地址", locLabel:"归属地", ispLabel:"运营商 ISP", geoLabel:"经纬度", tzLabel:"时区",
+    deviceTitle:"本地 / 设备信息", lanipLabel:"局域网 IP", connLabel:"连接类型", screenLabel:"屏幕分辨率", osLabel:"操作系统", browserLangLabel:"浏览器语言",
+    mapTitle:"IP 位置地图",
+    histTitle:"测速历史", clearBtn:"清空",
+    histEmpty:"还没有记录，完成一次测速后会自动保存（最多 20 条）。",
+    footer1:"下载/上传测速优先使用本地后端，未部署后端时自动改用 Cloudflare 公共端点 · IP 数据来自 ipapi.co",
+    footer2:"地图来自 OpenStreetMap / Leaflet（免费无需 Key）· 所有测量与历史记录均在你的浏览器本地完成。",
+    loading:"加载中…", detecting:"检测后端中…", srcLocal:"本地后端 · 上传可测", srcCloud:"Cloudflare 公共端点",
+    probing:"探测中…", lanBlocked:"无法获取（浏览器已屏蔽）", notSupported:"不支持", unknown:"未知",
+    statusPing:"测量延迟…", statusDl:"下载测试中…", statusUl:"上传测试中…", statusDone:"完成 ✓", jitterShort:"抖动",
+    locFail:"归属地查询失败（API 限流或被拦截）", ipFail:"获取失败",
+    thTime:"时间", thDl:"下载 Mbps", thUl:"上传 Mbps", thPing:"延迟 ms", thJitter:"抖动 ms",
+    avg:n=>`平均 (${n}次)`, mapPopupDefault:"你的大致位置",
+  },
+  en: {
+    title:"NetCheck · Online Speed Test / IP Lookup",
+    appName:"Network Checker",
+    tagline:"Speed test · IP lookup · Map · History — runs in your browser, data never touches our servers",
+    speedTitle:"Network Speed Test",
+    dlLabel:"Download", ulLabel:"Upload", pingLabel:"Latency (Ping)", jitterLabel:"Jitter",
+    startBtn:"▶ Start Test",
+    statusIdle:"Click start to measure latency, download and upload in turn",
+    ipTitle:"Public IP Info", ipAddr:"IP Address", locLabel:"Location", ispLabel:"ISP", geoLabel:"Coordinates", tzLabel:"Timezone",
+    deviceTitle:"Local / Device Info", lanipLabel:"Local IP", connLabel:"Connection", screenLabel:"Screen", osLabel:"OS", browserLangLabel:"Browser Language",
+    mapTitle:"IP Location Map",
+    histTitle:"Test History", clearBtn:"Clear",
+    histEmpty:"No records yet. Results are saved automatically after each test (up to 20).",
+    footer1:"Download/upload use a local backend if present, otherwise Cloudflare public endpoints · IP data from ipapi.co",
+    footer2:"Map by OpenStreetMap / Leaflet (free, no key) · All measurements and history stay in your browser.",
+    loading:"Loading…", detecting:"Detecting…", srcLocal:"Local backend · upload OK", srcCloud:"Cloudflare public endpoint",
+    probing:"Probing…", lanBlocked:"Unavailable (blocked by browser)", notSupported:"Not supported", unknown:"Unknown",
+    statusPing:"Measuring latency…", statusDl:"Testing download…", statusUl:"Testing upload…", statusDone:"Done ✓", jitterShort:"jitter",
+    locFail:"Location lookup failed (API limit or blocked)", ipFail:"Failed",
+    thTime:"Time", thDl:"Download Mbps", thUl:"Upload Mbps", thPing:"Latency ms", thJitter:"Jitter ms",
+    avg:n=>`Avg (${n})`, mapPopupDefault:"Your approximate location",
+  },
+  ja: {
+    title:"NetCheck · オンライン速度テスト / IP 情報",
+    appName:"ネットワーク検査ツール",
+    tagline:"速度測定 · IP 情報 · 地図表示 · 履歴 — ブラウザのみで動作、データはサーバーを経由しません",
+    speedTitle:"ネットワーク速度テスト",
+    dlLabel:"ダウンロード", ulLabel:"アップロード", pingLabel:"遅延 Ping", jitterLabel:"ジッター",
+    startBtn:"▶ テスト開始",
+    statusIdle:"開始を押すと、遅延・ダウンロード・アップロードを順に測定します",
+    ipTitle:"パブリック IP 情報", ipAddr:"IP アドレス", locLabel:"所在地", ispLabel:"プロバイダ (ISP)", geoLabel:"緯度・経度", tzLabel:"タイムゾーン",
+    deviceTitle:"ローカル / デバイス情報", lanipLabel:"ローカル IP", connLabel:"接続タイプ", screenLabel:"画面解像度", osLabel:"OS", browserLangLabel:"ブラウザ言語",
+    mapTitle:"IP 位置マップ",
+    histTitle:"測定履歴", clearBtn:"クリア",
+    histEmpty:"まだ記録がありません。測定すると自動保存されます（最大 20 件）。",
+    footer1:"ダウンロード/アップロードはローカルバックエンド優先、無い場合は Cloudflare 公開エンドポイントを使用 · IP データは ipapi.co",
+    footer2:"地図は OpenStreetMap / Leaflet（無料・キー不要）· すべての測定と履歴はブラウザ内で完結します。",
+    loading:"読み込み中…", detecting:"検出中…", srcLocal:"ローカル · アップロード可", srcCloud:"Cloudflare 公開エンドポイント",
+    probing:"検出中…", lanBlocked:"取得不可（ブラウザがブロック）", notSupported:"非対応", unknown:"不明",
+    statusPing:"遅延を測定中…", statusDl:"ダウンロード測定中…", statusUl:"アップロード測定中…", statusDone:"完了 ✓", jitterShort:"ジッター",
+    locFail:"所在地の取得に失敗（API 制限またはブロック）", ipFail:"取得失敗",
+    thTime:"時刻", thDl:"DL Mbps", thUl:"UL Mbps", thPing:"遅延 ms", thJitter:"ジッター ms",
+    avg:n=>`平均 (${n}回)`, mapPopupDefault:"おおよその位置",
+  },
+};
+
+let lang = localStorage.getItem('netcheck_lang');
+if(!lang){
+  const n = (navigator.language||'zh').toLowerCase();
+  if(n.startsWith('ja')) lang='ja';
+  else if(n.startsWith('zh')) lang='zh';
+  else lang='en';
+}
+function t(k){
+  const v = (I18N[lang] && I18N[lang][k]!=null) ? I18N[lang][k] : I18N.zh[k];
+  return v==null ? k : v;
+}
+function setLang(l){
+  lang = l;
+  localStorage.setItem('netcheck_lang', l);
+  document.documentElement.lang = (l==='zh') ? 'zh-CN' : l;
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('.langsw button').forEach(b=>b.classList.toggle('active', b.dataset.lang===l));
+  // 重新渲染带"当前语言文本"的动态部分
+  if($('srcTag').dataset.state) $('srcTag').textContent = t($('srcTag').dataset.state);
+  fillDevice();
+  renderHistory();
+}
 
 /* ============ 后端检测：决定用本地端点还是 Cloudflare 公共端点 ============ */
 const EP = {
@@ -170,7 +273,8 @@ async function detectBackend(){
       EP.pingURL = () => `/api/ping`;
     }
   }catch(e){}
-  $('srcTag').textContent = EP.local ? '本地后端 · 上传可测' : 'Cloudflare 公共端点';
+  $('srcTag').dataset.state = EP.local ? 'srcLocal' : 'srcCloud';
+  $('srcTag').textContent = t($('srcTag').dataset.state);
 }
 
 /* ============ 设备 / 本地信息 ============ */
@@ -178,7 +282,7 @@ function fillDevice(){
   $('screen').textContent = `${screen.width}×${screen.height} @${window.devicePixelRatio}x`;
   $('lang').textContent   = navigator.language || '—';
   const ua = navigator.userAgent;
-  let os = '未知';
+  let os = t('unknown');
   if(/Windows NT 10/.test(ua)) os='Windows 10/11';
   else if(/Windows/.test(ua)) os='Windows';
   else if(/Mac OS X/.test(ua)) os='macOS';
@@ -187,7 +291,7 @@ function fillDevice(){
   else if(/Linux/.test(ua)) os='Linux';
   $('os').textContent = os;
   const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  $('conn').textContent = c ? `${c.effectiveType||'?'}${c.downlink?` · ~${c.downlink}Mbps`:''}` : '不支持';
+  $('conn').textContent = c ? `${c.effectiveType||'?'}${c.downlink?` · ~${c.downlink}Mbps`:''}` : t('notSupported');
 }
 
 /* ============ WebRTC 探测局域网 IP ============ */
@@ -204,8 +308,8 @@ function findLocalIP(){
         seen.add(m[1]); $('lanip').textContent = [...seen].join(', ');
       }
     };
-    setTimeout(()=>{ if(!seen.size) $('lanip').textContent='无法获取（浏览器已屏蔽）'; },2000);
-  }catch(e){ $('lanip').textContent='不支持'; }
+    setTimeout(()=>{ if(!seen.size) $('lanip').textContent=t('lanBlocked'); },2000);
+  }catch(e){ $('lanip').textContent=t('notSupported'); }
 }
 
 /* ============ 公网 IP + 归属地 + 地图 ============ */
@@ -216,7 +320,7 @@ function showMap(lat, lng, label){
     map = L.map('map',{zoomControl:true, attributionControl:false}).setView([lat,lng], 9);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);
   } else { map.setView([lat,lng], 9); }
-  L.marker([lat,lng]).addTo(map).bindPopup(label||'你的大致位置').openPopup();
+  L.marker([lat,lng]).addTo(map).bindPopup(label||t('mapPopupDefault')).openPopup();
 }
 async function fetchIP(){
   try{
@@ -234,8 +338,8 @@ async function fetchIP(){
       const r2 = await fetch('https://api.ipify.org?format=json');
       const d2 = await r2.json();
       $('ip').textContent = d2.ip;
-      $('loc').textContent = '归属地查询失败（API 限流或被拦截）';
-    }catch(_){ $('ip').textContent='获取失败'; }
+      $('loc').textContent = t('locFail');
+    }catch(_){ $('ip').textContent=t('ipFail'); }
   }
 }
 
@@ -243,9 +347,9 @@ async function fetchIP(){
 async function measurePing(times=6){
   const samples=[];
   for(let i=0;i<times;i++){
-    const t=performance.now();
+    const tm=performance.now();
     try{ await fetch(EP.pingURL()+(EP.pingURL().includes('?')?'&':'?')+'t='+Math.random(),{cache:'no-store'}); }catch(e){}
-    samples.push(performance.now()-t);
+    samples.push(performance.now()-tm);
     $('prog').style.width = (i+1)/times*15+'%';
   }
   samples.sort((a,b)=>a-b);
@@ -259,17 +363,17 @@ async function measureDownload(){
   const sizes=[2e6, 10e6, 25e6];   // 第一次热身
   let best=0;
   for(let i=0;i<sizes.length;i++){
-    const t=performance.now();
+    const tm=performance.now();
     try{
       const r=await fetch(EP.downURL(sizes[i])+'&t='+Math.random(),{cache:'no-store'});
       const reader=r.body.getReader(); let recv=0;
       while(true){ const {done,value}=await reader.read(); if(done) break; recv+=value.length; }
-      const mbps=(recv*8)/((performance.now()-t)/1000)/1e6;
+      const mbps=(recv*8)/((performance.now()-tm)/1000)/1e6;
       if(i>0) best=Math.max(best,mbps);
       $('dl').textContent=mbps.toFixed(1);
     }catch(e){}
     $('prog').style.width = 15 + (i+1)/sizes.length*45 + '%';
-    $('status').textContent = `下载测试中… (${sizes[i]/1e6}MB)`;
+    $('status').textContent = `${t('statusDl')} (${sizes[i]/1e6}MB)`;
   }
   return best;
 }
@@ -286,15 +390,15 @@ async function measureUpload(){
   let best=0;
   for(let i=0;i<sizes.length;i++){
     const data=makePayload(sizes[i]);
-    const t=performance.now();
+    const tm=performance.now();
     try{
       await fetch(EP.upURL(),{method:'POST',body:data,cache:'no-store',headers:{'Content-Type':'application/octet-stream'}});
-      const mbps=(sizes[i]*8)/((performance.now()-t)/1000)/1e6;
+      const mbps=(sizes[i]*8)/((performance.now()-tm)/1000)/1e6;
       if(i>0) best=Math.max(best,mbps);
       $('ul').textContent=mbps.toFixed(1);
     }catch(e){}
     $('prog').style.width = 60 + (i+1)/sizes.length*40 + '%';
-    $('status').textContent = `上传测试中… (${sizes[i]/1e6}MB)`;
+    $('status').textContent = `${t('statusUl')} (${sizes[i]/1e6}MB)`;
   }
   return best;
 }
@@ -303,14 +407,14 @@ async function runTest(){
   const btn=$('startBtn'); btn.disabled=true;
   $('prog').style.width='0%';
   $('dl').textContent=$('ul').textContent='--';
-  $('status').textContent='测量延迟…';
+  $('status').textContent=t('statusPing');
   const {ping,jitter}=await measurePing();
   $('ping').textContent=ping; $('jitter').textContent=jitter;
   const dl=await measureDownload();
   const ul=await measureUpload();
   $('dl').textContent=dl.toFixed(1); $('ul').textContent=ul.toFixed(1);
   $('prog').style.width='100%';
-  $('status').textContent=`完成 ✓  ↓${dl.toFixed(1)} ↑${ul.toFixed(1)} Mbps · ${ping}ms · 抖动 ${jitter}ms`;
+  $('status').textContent=`${t('statusDone')}  ↓${dl.toFixed(1)} ↑${ul.toFixed(1)} Mbps · ${ping}ms · ${t('jitterShort')} ${jitter}ms`;
   saveHistory({dl, ul, ping, jitter});
   btn.disabled=false;
 }
@@ -326,22 +430,28 @@ function saveHistory(rec){
   renderHistory();
 }
 function renderHistory(){
+  const box=$('histBox'); if(!box) return;
   const list=loadHistory();
-  if(!list.length){ $('histBox').innerHTML='<div class="empty">还没有记录，完成一次测速后会自动保存（最多 20 条）。</div>'; return; }
+  if(!list.length){ box.innerHTML=`<div class="empty">${t('histEmpty')}</div>`; return; }
   const avg=k => (list.reduce((s,r)=>s+(r[k]||0),0)/list.length);
+  const avgLabel = (I18N[lang] && I18N[lang].avg) ? I18N[lang].avg : I18N.zh.avg;
   let rows = list.map(r=>{
     const d=new Date(r.t);
     const hm=`${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     return `<tr><td>${hm}</td><td>${r.dl.toFixed(1)}</td><td>${r.ul.toFixed(1)}</td><td>${r.ping}</td><td>${r.jitter}</td></tr>`;
   }).join('');
-  $('histBox').innerHTML = `<table>
-    <thead><tr><th>时间</th><th>下载 Mbps</th><th>上传 Mbps</th><th>延迟 ms</th><th>抖动 ms</th></tr></thead>
+  box.innerHTML = `<table>
+    <thead><tr><th>${t('thTime')}</th><th>${t('thDl')}</th><th>${t('thUl')}</th><th>${t('thPing')}</th><th>${t('thJitter')}</th></tr></thead>
     <tbody>${rows}
-      <tr class="avgrow"><td>平均 (${list.length}次)</td><td>${avg('dl').toFixed(1)}</td><td>${avg('ul').toFixed(1)}</td><td>${Math.round(avg('ping'))}</td><td>${Math.round(avg('jitter'))}</td></tr>
+      <tr class="avgrow"><td>${avgLabel(list.length)}</td><td>${avg('dl').toFixed(1)}</td><td>${avg('ul').toFixed(1)}</td><td>${Math.round(avg('ping'))}</td><td>${Math.round(avg('jitter'))}</td></tr>
     </tbody></table>`;
 }
 
 /* ============ 启动 ============ */
+setLang(lang);                       // 应用语言到所有静态文字
+$('ip').textContent    = t('loading');
+$('lanip').textContent = t('probing');
+$('srcTag').textContent = t('detecting');
 fillDevice();
 findLocalIP();
 fetchIP();
@@ -349,6 +459,9 @@ detectBackend();
 renderHistory();
 $('startBtn').addEventListener('click', runTest);
 $('clearBtn').addEventListener('click', ()=>{ localStorage.removeItem(HKEY); renderHistory(); });
+document.querySelectorAll('.langsw button').forEach(b=>{
+  b.addEventListener('click', ()=>setLang(b.dataset.lang));
+});
 </script>
 
 <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "e38cd8eb63494ef9ac2aa5c552409f6c"}'></script><!-- End Cloudflare Web Analytics -->
