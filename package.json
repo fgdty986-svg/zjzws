@@ -1,0 +1,15 @@
+{
+  "name": "netcheck",
+  "version": "1.0.0",
+  "description": "纯前端网络检测工具：IP 归属、地图、延迟与上下行测速，附零依赖 Node 后端",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "keywords": ["speedtest", "ip", "network", "测速", "网络检测"],
+  "license": "MIT"
+}
