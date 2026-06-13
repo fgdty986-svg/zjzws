@@ -181,10 +181,11 @@ const I18N = {
     loading:"加载中…", detecting:"检测后端中…", srcLocal:"本地后端 · 上传可测", srcCloud:"Cloudflare 公共端点",
     probing:"探测中…", lanBlocked:"无法获取（浏览器已屏蔽）", notSupported:"不支持", unknown:"未知",
     statusPing:"测量延迟…", statusDl:"下载测试中…", statusUl:"上传测试中…", statusDone:"完成 ✓", jitterShort:"抖动",
+    conns:n=>`${n} 连接并发`,
     locFail:"归属地查询失败（API 限流或被拦截）", ipFail:"获取失败",
     thTime:"时间", thDl:"下载 Mbps", thUl:"上传 Mbps", thPing:"延迟 ms", thJitter:"抖动 ms",
     avg:n=>`平均 (${n}次)`, mapPopupDefault:"你的大致位置",
-    cooldown:s=>`请稍候 ${s}s`, bwNote:"提示：测速会在几秒内占满带宽，属正常现象，不会损害设备或网络。",
+    cooldown:s=>`请稍候 ${s}s`, bwNote:"提示：测速用多连接并发压满带宽，全程约 15 秒；高速线路或移动数据下会消耗较多流量，属正常现象，不损害设备。",
   },
   en: {
     title:"NetCheck · Online Speed Test / IP Lookup",
@@ -204,10 +205,11 @@ const I18N = {
     loading:"Loading…", detecting:"Detecting…", srcLocal:"Local backend · upload OK", srcCloud:"Cloudflare public endpoint",
     probing:"Probing…", lanBlocked:"Unavailable (blocked by browser)", notSupported:"Not supported", unknown:"Unknown",
     statusPing:"Measuring latency…", statusDl:"Testing download…", statusUl:"Testing upload…", statusDone:"Done ✓", jitterShort:"jitter",
+    conns:n=>`${n} parallel`,
     locFail:"Location lookup failed (API limit or blocked)", ipFail:"Failed",
     thTime:"Time", thDl:"Download Mbps", thUl:"Upload Mbps", thPing:"Latency ms", thJitter:"Jitter ms",
     avg:n=>`Avg (${n})`, mapPopupDefault:"Your approximate location",
-    cooldown:s=>`Wait ${s}s`, bwNote:"Note: a speed test briefly uses your full bandwidth — this is normal and harmless.",
+    cooldown:s=>`Wait ${s}s`, bwNote:"Note: the test opens multiple parallel connections to saturate your line (~15s total). On fast links or mobile data it can use significant data — this is normal and harmless.",
   },
   ja: {
     title:"NetCheck · オンライン速度テスト / IP 情報",
@@ -227,10 +229,11 @@ const I18N = {
     loading:"読み込み中…", detecting:"検出中…", srcLocal:"ローカル · アップロード可", srcCloud:"Cloudflare 公開エンドポイント",
     probing:"検出中…", lanBlocked:"取得不可（ブラウザがブロック）", notSupported:"非対応", unknown:"不明",
     statusPing:"遅延を測定中…", statusDl:"ダウンロード測定中…", statusUl:"アップロード測定中…", statusDone:"完了 ✓", jitterShort:"ジッター",
+    conns:n=>`${n} 並列接続`,
     locFail:"所在地の取得に失敗（API 制限またはブロック）", ipFail:"取得失敗",
     thTime:"時刻", thDl:"DL Mbps", thUl:"UL Mbps", thPing:"遅延 ms", thJitter:"ジッター ms",
     avg:n=>`平均 (${n}回)`, mapPopupDefault:"おおよその位置",
-    cooldown:s=>`お待ちを ${s}秒`, bwNote:"ヒント：速度テストは数秒間、帯域を最大限使用します。正常な動作で害はありません。",
+    cooldown:s=>`お待ちを ${s}秒`, bwNote:"ヒント：本テストは複数の並列接続で帯域を最大化します（全体で約15秒）。高速回線やモバイル通信ではデータ消費が大きくなりますが、正常な動作で害はありません。",
   },
 };
 
@@ -367,23 +370,55 @@ async function measurePing(times=6){
   return {ping:Math.round(samples[0]), jitter:Math.round(jitter)};
 }
 
+/* 多连接并发测速参数：单连接受延迟限制跑不满，并发才能压满高带宽线路 */
+const DL_STREAMS   = 8;      // 下载并发连接数
+const UL_STREAMS   = 4;      // 上传并发连接数
+const TEST_MS      = 8000;   // 每阶段测量时长（ms）
+const WARMUP_MS    = 1500;   // 忽略前段 TCP 慢启动
+const DL_CHUNK     = 25e6;   // 每条下载连接单次请求字节
+const UL_CHUNK     = 4e6;    // 每条上传连接单次 POST 字节
+
+// 下载：同时开 N 条连接持续拉流，按稳定段总字节 / 时间算速率
 async function measureDownload(){
-  const sizes=[2e6, 10e6, 25e6];   // 第一次热身
-  let best=0;
-  for(let i=0;i<sizes.length;i++){
-    const tm=performance.now();
-    try{
-      const r=await fetch(EP.downURL(sizes[i])+'&t='+Math.random(),{cache:'no-store'});
-      const reader=r.body.getReader(); let recv=0;
-      while(true){ const {done,value}=await reader.read(); if(done) break; recv+=value.length; }
-      const mbps=(recv*8)/((performance.now()-tm)/1000)/1e6;
-      if(i>0) best=Math.max(best,mbps);
-      $('dl').textContent=mbps.toFixed(1);
-    }catch(e){}
-    $('prog').style.width = 15 + (i+1)/sizes.length*45 + '%';
-    $('status').textContent = `${t('statusDl')} (${sizes[i]/1e6}MB)`;
+  let totalBytes=0, running=true;
+  const t0=performance.now();
+
+  async function worker(){
+    while(running){
+      try{
+        const base=EP.downURL(DL_CHUNK);
+        const url=base+(base.includes('?')?'&':'?')+'t='+Math.random();
+        const r=await fetch(url,{cache:'no-store'});
+        if(!r.body){ totalBytes+=(await r.arrayBuffer()).byteLength; continue; } // 老浏览器兜底
+        const reader=r.body.getReader();
+        while(running){
+          const {done,value}=await reader.read();
+          if(done) break;
+          totalBytes+=value.length;
+        }
+        try{ await reader.cancel(); }catch(_){}
+      }catch(e){ if(!running) return; }
+    }
   }
-  return best;
+
+  let warmBytes=0, warmDone=false, measStart=t0, lastBytes=0, lastTime=t0;
+  const sampler=setInterval(()=>{
+    const now=performance.now(), elapsed=now-t0;
+    const inst=(totalBytes-lastBytes)*8/((now-lastTime)/1000)/1e6;  // 实时瞬时速度
+    lastBytes=totalBytes; lastTime=now;
+    if(elapsed>=WARMUP_MS && !warmDone){ warmDone=true; warmBytes=totalBytes; measStart=now; }
+    if(warmDone && isFinite(inst)) $('dl').textContent=inst.toFixed(1);
+    $('prog').style.width=(15+Math.min(elapsed/TEST_MS,1)*45)+'%';
+    $('status').textContent=`${t('statusDl')} · ${t('conns')(DL_STREAMS)}`;
+  },250);
+
+  const ws=[]; for(let i=0;i<DL_STREAMS;i++) ws.push(worker());
+  await new Promise(res=>setTimeout(res,TEST_MS));
+  running=false; clearInterval(sampler);
+  const measEnd=performance.now();
+  await Promise.allSettled(ws);
+  const secs=(measEnd-measStart)/1000;
+  return secs>0 ? (totalBytes-warmBytes)*8/secs/1e6 : 0;
 }
 
 function makePayload(size){
@@ -393,22 +428,54 @@ function makePayload(size){
   for(let i=0;i<size;i+=65536) buf.set(seed.subarray(0,Math.min(65536,size-i)), i);
   return buf;
 }
+let _ulPayload=null;
+function ulPayload(){ if(!_ulPayload) _ulPayload=makePayload(UL_CHUNK); return _ulPayload; }
+
+// 上传：同时开 N 条连接循环 POST。用 XHR 的 upload.onprogress 按「已发送字节」实时计数，
+// 这样慢速线路也能算出速度（不必等整块发完），并忽略前段热身。
 async function measureUpload(){
-  const sizes=[1e6, 5e6, 8e6];   // 第一次热身
-  let best=0;
-  for(let i=0;i<sizes.length;i++){
-    const data=makePayload(sizes[i]);
-    const tm=performance.now();
-    try{
-      await fetch(EP.upURL(),{method:'POST',body:data,cache:'no-store',headers:{'Content-Type':'application/octet-stream'}});
-      const mbps=(sizes[i]*8)/((performance.now()-tm)/1000)/1e6;
-      if(i>0) best=Math.max(best,mbps);
-      $('ul').textContent=mbps.toFixed(1);
-    }catch(e){}
-    $('prog').style.width = 60 + (i+1)/sizes.length*40 + '%';
-    $('status').textContent = `${t('statusUl')} (${sizes[i]/1e6}MB)`;
+  const t0=performance.now();
+  let totalBytes=0, running=true, warmDone=false, measStart=t0;
+  let lastBytes=0, lastTime=t0;
+  const active=new Set();
+
+  function uploadOnce(){
+    return new Promise((resolve,reject)=>{
+      const xhr=new XMLHttpRequest();
+      active.add(xhr);
+      xhr.open('POST', EP.upURL(), true);
+      xhr.setRequestHeader('Content-Type','application/octet-stream');
+      let last=0;
+      xhr.upload.onprogress=e=>{
+        const now=performance.now(), delta=e.loaded-last; last=e.loaded;
+        if(now-t0 < WARMUP_MS) return;                       // 热身段不计
+        if(!warmDone){ warmDone=true; measStart=now; return; } // 标记起点
+        totalBytes+=delta;
+      };
+      const fin=()=>{ active.delete(xhr); resolve(); };
+      xhr.onload=fin; xhr.onerror=fin; xhr.onabort=fin;
+      xhr.send(ulPayload());
+    });
   }
-  return best;
+  async function worker(){ while(running) await uploadOnce(); }
+
+  const sampler=setInterval(()=>{
+    const now=performance.now(), elapsed=now-t0;
+    const inst=(totalBytes-lastBytes)*8/((now-lastTime)/1000)/1e6;
+    lastBytes=totalBytes; lastTime=now;
+    if(warmDone && isFinite(inst)) $('ul').textContent=inst.toFixed(1);
+    $('prog').style.width=(60+Math.min(elapsed/TEST_MS,1)*40)+'%';
+    $('status').textContent=`${t('statusUl')} · ${t('conns')(UL_STREAMS)}`;
+  },250);
+
+  const ws=[]; for(let i=0;i<UL_STREAMS;i++) ws.push(worker());
+  await new Promise(res=>setTimeout(res,TEST_MS));
+  running=false; clearInterval(sampler);
+  const measEnd=performance.now();
+  active.forEach(x=>{ try{ x.abort(); }catch(_){} });
+  await Promise.allSettled(ws);
+  const secs=(measEnd-measStart)/1000;
+  return secs>0 ? totalBytes*8/secs/1e6 : 0;
 }
 
 async function runTest(){

@@ -6,6 +6,7 @@ node_modules/
 Thumbs.db
 .vscode/
 .idea/
+.claude/
 
 # 日志与临时
 *.log
