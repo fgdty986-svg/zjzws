@@ -371,8 +371,8 @@ async function measurePing(times=6){
 }
 
 /* 多连接并发测速参数：单连接受延迟限制跑不满，并发才能压满高带宽线路 */
-const DL_STREAMS   = 8;      // 下载并发连接数
-const UL_STREAMS   = 4;      // 上传并发连接数
+const DL_STREAMS   = 16;     // 下载并发连接数（多连接才能压满高带宽线路）
+const UL_STREAMS   = 4;      // 上传并发连接数（家用上行带宽小，4 条已足够压满）
 const TEST_MS      = 8000;   // 每阶段测量时长（ms）
 const WARMUP_MS    = 1500;   // 忽略前段 TCP 慢启动
 const DL_CHUNK     = 25e6;   // 每条下载连接单次请求字节
